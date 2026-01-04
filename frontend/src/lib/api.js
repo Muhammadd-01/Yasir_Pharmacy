@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
 
 // Create axios instance
 const api = axios.create({
@@ -75,6 +75,11 @@ export const authAPI = {
     getMe: () => api.get('/auth/me'),
     updateProfile: (data) => api.put('/auth/me', data),
     changePassword: (data) => api.put('/auth/password', data),
+};
+
+// Users API (For Profile updates)
+export const usersAPI = {
+    updateProfile: (data) => api.put('/users/profile', data),
 };
 
 // Products API
