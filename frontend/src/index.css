@@ -1,0 +1,184 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 3.9%;
+    --primary: 180 100% 25%;
+    /* Teal Dark */
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96.1%;
+    --secondary-foreground: 0 0% 9%;
+    --muted: 0 0% 96.1%;
+    --muted-foreground: 0 0% 45.1%;
+    --accent: 0 0% 96.1%;
+    --accent-foreground: 0 0% 9%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 0 0% 89.8%;
+    --input: 0 0% 89.8%;
+    --ring: 180 100% 25%;
+    --radius: 0.75rem;
+
+    --neon-silver: 180 100% 25%;
+    /* Re-mapped for Light Mode */
+    --neon-glow: 180 100% 40%;
+  }
+
+  .dark {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+
+    --neon-silver: 0 0% 75%;
+    --neon-glow: 0 0% 90%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased transition-colors duration-300;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  /* Custom Scrollbar */
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-background;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/30;
+    border-radius: 4px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/50;
+  }
+}
+
+@layer components {
+
+  /* Glassmorphism - Adaptive */
+  .glass {
+    @apply bg-white/70 dark:bg-black/20 border border-black/5 dark:border-white/10 backdrop-blur-md;
+  }
+
+  .glass-card {
+    @apply bg-white/80 dark:bg-zinc-900/50 border border-zinc-200 dark:border-zinc-800 backdrop-blur-xl shadow-lg dark:shadow-none transition-all duration-300;
+  }
+
+  /* Neon Glow Effects - Tone down for Light Mode */
+  .neon-glow {
+    @apply shadow-lg shadow-primary/20;
+  }
+
+  .dark .neon-glow {
+    box-shadow: 0 0 20px rgba(192, 192, 192, 0.3);
+  }
+
+  .neon-text {
+    @apply text-primary transition-colors duration-300;
+  }
+
+  .dark .neon-text {
+    @apply text-foreground;
+    filter: drop-shadow(0 0 10px rgba(192, 192, 192, 0.5));
+  }
+
+  .neon-border {
+    @apply border border-border;
+  }
+
+  .dark .neon-border {
+    @apply border-white/20;
+    box-shadow: inset 0 0 20px rgba(192, 192, 192, 0.05);
+  }
+
+  /* Chrome/Metallic Text - Keep for dark, simpler for light */
+  .chrome-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-b from-zinc-700 to-zinc-900 dark:from-white dark:via-zinc-300 dark:to-zinc-500;
+  }
+
+  /* Premium Button */
+  .btn-premium {
+    @apply relative overflow-hidden px-6 py-3 rounded-lg font-semibold transition-all duration-300;
+    background: linear-gradient(135deg, #2d2d2d 0%, #1a1a1a 100%);
+    color: white;
+  }
+
+  .dark .btn-premium {
+    border: 1px solid rgba(192, 192, 192, 0.2);
+  }
+
+  /* Primary Button with Glow */
+  .btn-glow {
+    @apply relative px-6 py-3 rounded-lg font-semibold transition-all duration-300;
+    @apply bg-primary text-primary-foreground hover:bg-primary/90;
+  }
+
+  .dark .btn-glow {
+    background: linear-gradient(135deg, #c0c0c0 0%, #a0a0a0 100%);
+    color: #0a0a0a;
+  }
+
+  .dark .btn-glow:hover {
+    box-shadow: 0 0 30px rgba(192, 192, 192, 0.5);
+  }
+
+  /* Card Hover Effect */
+  .card-hover {
+    @apply transition-all duration-300;
+  }
+
+  .card-hover:hover {
+    transform: translateY(-8px);
+    @apply shadow-xl shadow-black/5;
+  }
+
+  .dark .card-hover:hover {
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  }
+}
+
+@layer utilities {
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(135deg, #000 0%, #444 100%);
+  }
+
+  .dark .text-gradient {
+    background-image: linear-gradient(135deg, #ffffff 0%, #c0c0c0 100%);
+  }
+}
