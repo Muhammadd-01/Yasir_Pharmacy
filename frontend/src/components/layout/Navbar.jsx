@@ -8,6 +8,7 @@ import {
 import { useAuth, useCart, useNotification } from '@/context';
 import { notificationsAPI } from '@/lib/api';
 import { Button } from '@/components/ui/button';
+import { getImageUrl } from '@/lib/utils';
 import { useTheme } from '@/context/ThemeContext';
 import { Sun, Moon } from 'lucide-react';
 import { productsAPI } from '@/lib/api';
@@ -344,8 +345,16 @@ const Navbar = () => {
                                     onMouseEnter={() => setActiveDropdown('user')}
                                     onMouseLeave={() => setActiveDropdown(null)}
                                 >
-                                    <Button variant="ghost" size="icon">
-                                        <User className="w-5 h-5" />
+                                    <Button variant="ghost" size="icon" className="relative w-8 h-8 rounded-full overflow-hidden">
+                                        {user?.profileImage ? (
+                                            <img
+                                                src={getImageUrl(user.profileImage)}
+                                                alt={user.name}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        ) : (
+                                            <User className="w-5 h-5" />
+                                        )}
                                     </Button>
 
                                     <AnimatePresence>
@@ -358,8 +367,8 @@ const Navbar = () => {
                                                 className="absolute top-full right-0 mt-2 w-48 py-2 rounded-xl bg-popover border border-border shadow-xl z-50"
                                             >
                                                 <div className="px-4 py-2 border-b border-border">
-                                                    <p className="font-medium text-sm text-foreground">{user?.name}</p>
-                                                    <p className="text-xs text-muted-foreground">{user?.email}</p>
+                                                    <p className="font-medium text-sm text-foreground truncate">{user?.name}</p>
+                                                    <p className="text-xs text-muted-foreground truncate" title={user?.email}>{user?.email}</p>
                                                 </div>
                                                 <Link to="/profile" className="block px-4 py-2.5 text-sm hover:bg-accent text-foreground">
                                                     Profile

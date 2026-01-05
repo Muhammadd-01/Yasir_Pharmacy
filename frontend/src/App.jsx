@@ -16,7 +16,9 @@ import {
     Profile,
     Notifications,
     Checkout,
-    Wishlist
+    Wishlist,
+    FAQs,
+    ReturnPolicy
 } from './pages';
 
 import { ThemeProvider } from './context/ThemeContext';
@@ -53,6 +55,8 @@ function App() {
                                     <Route path="/services" element={<Services />} />
                                     <Route path="/about" element={<About />} />
                                     <Route path="/contact" element={<Contact />} />
+                                    <Route path="/faqs" element={<FAQs />} />
+                                    <Route path="/return-policy" element={<ReturnPolicy />} />
                                 </Route>
                             </Routes>
                             <BackToTop />

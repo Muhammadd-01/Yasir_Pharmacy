@@ -108,7 +108,7 @@ const Reviews = () => {
                                     {/* Product Image */}
                                     <div className="w-16 h-16 rounded-lg bg-zinc-800 overflow-hidden flex-shrink-0">
                                         <img
-                                            src={getImageUrl(review.product?.images?.[0]?.url)}
+                                            src={getImageUrl(review.product?.images?.[0]?.url || review.product?.images?.[0])}
                                             alt={review.product?.name}
                                             className="w-full h-full object-cover"
                                             onError={(e) => e.target.src = '/placeholder.png'}

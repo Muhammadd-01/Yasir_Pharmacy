@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
     ShoppingCart, Minus, Plus, Star, Heart, Share2,
-    Truck, Shield, ArrowLeft, Package, AlertCircle
+    Truck, Shield, ArrowLeft, Package, AlertCircle,
+    ChevronLeft, ChevronRight
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -12,6 +13,7 @@ import ReviewSection from '@/components/reviews/ReviewSection';
 import ShareButton from '@/components/ShareButton';
 import { productsAPI, wishlistAPI } from '@/lib/api';
 import { useCart, useAuth, useNotification } from '@/context';
+import { getImageUrl } from '@/lib/utils';
 
 const ProductDetail = ({ type = 'medicine' }) => {
     const { slug } = useParams();
@@ -30,6 +32,18 @@ const ProductDetail = ({ type = 'medicine' }) => {
     useEffect(() => {
         fetchProduct();
     }, [slug]);
+
+    const images = product?.images?.length > 0 ? product.images : [{ url: '/placeholder-product.jpg' }];
+
+    useEffect(() => {
+        if (!product || images.length <= 1) return;
+
+        const interval = setInterval(() => {
+            setSelectedImage((prev) => (prev + 1) % images.length);
+        }, 4000); // Cycle main image every 4 seconds
+
+        return () => clearInterval(interval);
+    }, [product, images.length]);
 
     const fetchProduct = async () => {
         try {
@@ -133,7 +147,6 @@ const ProductDetail = ({ type = 'medicine' }) => {
         );
     }
 
-    const images = product.images?.length > 0 ? product.images : [{ url: '/placeholder-product.jpg' }];
     const hasDiscount = product.comparePrice && product.comparePrice > product.price;
 
     return (
@@ -157,14 +170,46 @@ const ProductDetail = ({ type = 'medicine' }) => {
                         animate={{ opacity: 1, x: 0 }}
                         className="space-y-4"
                     >
-                        <div className="relative aspect-square rounded-2xl overflow-hidden glass-card neon-border">
-                            <img
-                                src={images[selectedImage]?.url || '/placeholder-product.jpg'}
-                                alt={product.name}
-                                className="w-full h-full object-cover"
-                            />
+                        <div className="relative aspect-square rounded-2xl overflow-hidden glass-card neon-border group/img">
+                            <AnimatePresence mode="wait">
+                                <motion.img
+                                    key={selectedImage}
+                                    src={getImageUrl(images[selectedImage]?.url || images[selectedImage])}
+                                    alt={product.name}
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0 }}
+                                    transition={{ duration: 0.3 }}
+                                    className="w-full h-full object-cover"
+                                />
+                            </AnimatePresence>
+
+                            {/* Navigation Arrows */}
+                            {images.length > 1 && (
+                                <>
+                                    <button
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            setSelectedImage((prev) => (prev > 0 ? prev - 1 : images.length - 1));
+                                        }}
+                                        className="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center text-white opacity-0 group-hover/img:opacity-100 transition-opacity hover:bg-neon-silver hover:text-black"
+                                    >
+                                        <ChevronLeft className="w-6 h-6" />
+                                    </button>
+                                    <button
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            setSelectedImage((prev) => (prev < images.length - 1 ? prev + 1 : 0));
+                                        }}
+                                        className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-black/50 backdrop-blur-md flex items-center justify-center text-white opacity-0 group-hover/img:opacity-100 transition-opacity hover:bg-neon-silver hover:text-black"
+                                    >
+                                        <ChevronRight className="w-6 h-6" />
+                                    </button>
+                                </>
+                            )}
+
                             {hasDiscount && (
-                                <span className="absolute top-4 left-4 px-3 py-1 text-sm font-bold rounded-lg bg-red-500 text-white">
+                                <span className="absolute top-4 left-4 px-3 py-1 text-sm font-bold rounded-lg bg-red-500 text-white z-10">
                                     -{Math.round((1 - product.price / product.comparePrice) * 100)}%
                                 </span>
                             )}
@@ -180,7 +225,7 @@ const ProductDetail = ({ type = 'medicine' }) => {
                                         className={`w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${selectedImage === idx ? 'border-neon-silver' : 'border-transparent opacity-60 hover:opacity-100'
                                             }`}
                                     >
-                                        <img src={img.url} alt="" className="w-full h-full object-cover" />
+                                        <img src={getImageUrl(img.url || img)} alt="" className="w-full h-full object-cover" />
                                     </button>
                                 ))}
                             </div>

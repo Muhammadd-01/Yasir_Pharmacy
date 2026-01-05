@@ -1,5 +1,6 @@
+import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingCart, Plus, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart, useAuth, useNotification } from '@/context';
@@ -9,6 +10,18 @@ const ProductCard = ({ product }) => {
     const { addToCart, loading } = useCart();
     const { isAuthenticated } = useAuth();
     const { notify } = useNotification();
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const images = product.images?.length > 0 ? product.images : [product.images?.[0] || '/placeholder-product.jpg'];
+
+    useEffect(() => {
+        if (images.length <= 1) return;
+
+        const interval = setInterval(() => {
+            setCurrentImageIndex((prev) => (prev + 1) % images.length);
+        }, 3000); // Change image every 3 seconds
+
+        return () => clearInterval(interval);
+    }, [images.length]);
 
     const handleAddToCart = async (e) => {
         e.preventDefault();
@@ -27,7 +40,7 @@ const ProductCard = ({ product }) => {
         }
     };
 
-    const primaryImage = getImageUrl(product.images?.[0]?.url || product.images?.[0]);
+    const currentImage = getImageUrl(images[currentImageIndex]?.url || images[currentImageIndex]);
     const hasDiscount = product.comparePrice && product.comparePrice > product.price;
     const discountPercent = hasDiscount
         ? Math.round((1 - product.price / product.comparePrice) * 100)
@@ -45,12 +58,19 @@ const ProductCard = ({ product }) => {
                 <div className="glass-card rounded-xl overflow-hidden">
                     {/* Image Container */}
                     <div className="relative aspect-square overflow-hidden bg-gradient-to-br from-zinc-900 to-zinc-800">
-                        <img
-                            src={primaryImage}
-                            alt={product.name}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                            loading="lazy"
-                        />
+                        <AnimatePresence mode="wait">
+                            <motion.img
+                                key={currentImageIndex}
+                                src={currentImage}
+                                alt={product.name}
+                                initial={{ opacity: 0, scale: 1.1 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.9 }}
+                                transition={{ duration: 0.5 }}
+                                className="w-full h-full object-cover"
+                                loading="lazy"
+                            />
+                        </AnimatePresence>
 
                         {/* Badges */}
                         <div className="absolute top-3 left-3 flex flex-col gap-2">

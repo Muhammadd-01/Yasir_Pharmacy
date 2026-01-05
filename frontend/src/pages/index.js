@@ -13,3 +13,5 @@ export { default as Profile } from './Profile';
 export { default as Notifications } from './Notifications';
 export { default as Checkout } from './Checkout';
 export { default as Wishlist } from './Wishlist';
+export { default as FAQs } from './FAQs';
+export { default as ReturnPolicy } from './ReturnPolicy';

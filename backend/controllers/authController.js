@@ -247,11 +247,14 @@ export const getMe = asyncHandler(async (req, res) => {
 export const updateProfile = asyncHandler(async (req, res) => {
     const { name, phone, address } = req.body;
 
+    console.log('Update Profile Request:', { body: req.body, file: req.file });
+
     let parsedAddress = address;
     if (typeof address === 'string') {
         try {
             parsedAddress = JSON.parse(address);
         } catch (error) {
+            console.error('Address parsing error:', error);
             // Keep as string or ignore if invalid JSON
         }
     }
@@ -261,6 +264,7 @@ export const updateProfile = asyncHandler(async (req, res) => {
     // Handle profile image upload
     if (req.file) {
         updateData.profileImage = `/uploads/${req.file.filename}`;
+        console.log('New Profile Image Path:', updateData.profileImage);
     }
 
     const user = await User.findByIdAndUpdate(

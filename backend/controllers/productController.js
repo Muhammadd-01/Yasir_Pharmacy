@@ -184,13 +184,16 @@ export const createProduct = asyncHandler(async (req, res) => {
 
         // Handle uploaded files
         if (req.files && req.files.length > 0) {
-            images = req.files.map(file => ({ url: `/uploads/${file.filename}` }));
+            images = req.files.map((file, index) => ({
+                url: `/uploads/${file.filename}`,
+                isPrimary: index === 0
+            }));
         }
 
         // Add images to body
         req.body.images = images;
 
-        console.log('Creating product with body:', JSON.stringify(req.body, null, 2));
+        console.log('Final product data for create:', JSON.stringify(req.body, null, 2));
 
         const product = await Product.create(req.body);
 
@@ -209,32 +212,51 @@ export const createProduct = asyncHandler(async (req, res) => {
     }
 });
 
-/**
- * @desc    Update product
- * @route   PUT /api/admin/products/:id
- * @access  Private/Admin
- */
 export const updateProduct = asyncHandler(async (req, res) => {
+    console.log('Update Product Request:', {
+        id: req.params.id,
+        body: req.body,
+        files: req.files?.map(f => f.filename)
+    });
+
     let images = [];
 
-    // Handle existing images (sent as strings)
+    // Handle existing images (sent as strings or objects)
     if (req.body.images) {
-        if (typeof req.body.images === 'string') {
-            images = [req.body.images];
-        } else if (Array.isArray(req.body.images)) {
-            images = req.body.images;
-        }
+        let existingImages = Array.isArray(req.body.images) ? req.body.images : [req.body.images];
+        images = existingImages.map(img => {
+            if (typeof img === 'string') {
+                try {
+                    // Try to parse if it's a JSON string object
+                    const parsed = JSON.parse(img);
+                    return typeof parsed === 'object' ? parsed : { url: img };
+                } catch (e) {
+                    return { url: img };
+                }
+            }
+            return img; // Already an object
+        });
     }
 
     // Handle new images
     if (req.files && req.files.length > 0) {
-        const newImages = req.files.map(file => ({ url: `/uploads/${file.filename}` }));
+        const newImages = req.files.map(file => ({
+            url: `/uploads/${file.filename}`,
+            isPrimary: images.length === 0
+        }));
         images = [...images, ...newImages];
     }
 
     if (images.length > 0) {
         req.body.images = images;
     }
+
+    // Ensure category id is used if it's an object
+    if (req.body.category && typeof req.body.category === 'object') {
+        req.body.category = req.body.category._id;
+    }
+
+    console.log('Final update data:', JSON.stringify(req.body, null, 2));
 
     const product = await Product.findByIdAndUpdate(
         req.params.id,

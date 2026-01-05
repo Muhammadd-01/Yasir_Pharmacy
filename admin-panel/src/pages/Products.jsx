@@ -26,7 +26,8 @@ const Products = () => {
         subcategory: '',
         type: 'medicine',
         isActive: true,
-        images: []
+        images: [], // New files
+        existingImages: [] // Original URLs
     });
     const [imagePreview, setImagePreview] = useState([]);
 
@@ -34,7 +35,43 @@ const Products = () => {
         fetchData();
     }, [search, typeFilter, statusFilter]);
 
-    // ...
+    useEffect(() => {
+        if (editingProduct) {
+            setFormData({
+                name: editingProduct.name || '',
+                description: editingProduct.description || '',
+                price: editingProduct.price || '',
+                stock: editingProduct.stock || '',
+                category: editingProduct.category?._id || editingProduct.category || '',
+                subcategory: editingProduct.subcategory || '',
+                type: editingProduct.type || 'medicine',
+                isActive: editingProduct.isActive ?? true,
+                images: [],
+                existingImages: (editingProduct.images || []).map(img =>
+                    typeof img === 'string' ? img : img.url
+                )
+            });
+
+            const existingPreviews = (editingProduct.images || []).map(img =>
+                typeof img === 'string' ? img : img.url
+            );
+            setImagePreview(existingPreviews.map(url => getImageUrl(url)));
+        } else {
+            setFormData({
+                name: '',
+                description: '',
+                price: '',
+                stock: '',
+                category: '',
+                subcategory: '',
+                type: 'medicine',
+                isActive: true,
+                images: [],
+                existingImages: []
+            });
+            setImagePreview([]);
+        }
+    }, [editingProduct]);
 
     const fetchData = async () => {
         try {
@@ -77,11 +114,36 @@ const Products = () => {
 
     const handleFileChange = (e) => {
         const files = Array.from(e.target.files);
-        setFormData(prev => ({ ...prev, images: files }));
+        setFormData(prev => ({
+            ...prev,
+            images: [...prev.images, ...files]
+        }));
 
-        // Crate previews
+        // Add to previews
         const newPreviews = files.map(file => URL.createObjectURL(file));
-        setImagePreview(newPreviews);
+        setImagePreview(prev => [...prev, ...newPreviews]);
+    };
+
+    const removeImage = (index) => {
+        const existingCount = formData.existingImages.length;
+
+        if (index < existingCount) {
+            // Remove from existing
+            const updatedExisting = [...formData.existingImages];
+            updatedExisting.splice(index, 1);
+            setFormData(prev => ({ ...prev, existingImages: updatedExisting }));
+        } else {
+            // Remove from new files
+            const newIndex = index - existingCount;
+            const updatedNew = [...formData.images];
+            updatedNew.splice(newIndex, 1);
+            setFormData(prev => ({ ...prev, images: updatedNew }));
+        }
+
+        // Remove from previews
+        const updatedPreviews = [...imagePreview];
+        updatedPreviews.splice(index, 1);
+        setImagePreview(updatedPreviews);
     };
 
     const handleSubmit = async (e) => {
@@ -99,10 +161,17 @@ const Products = () => {
             data.append('type', formData.type);
             data.append('isActive', formData.isActive);
 
-            // Append images
-            if (formData.images && formData.images.forEach) {
+            // Append new images
+            if (formData.images && formData.images.length > 0) {
                 formData.images.forEach(image => {
                     data.append('images', image);
+                });
+            }
+
+            // Append remaining existing images
+            if (formData.existingImages && formData.existingImages.length > 0) {
+                formData.existingImages.forEach(url => {
+                    data.append('images', url);
                 });
             }
 
@@ -426,10 +495,22 @@ const Products = () => {
                                     </label>
                                 </div>
                                 {imagePreview.length > 0 && (
-                                    <div className="flex gap-2 mt-4 overflow-x-auto pb-2">
+                                    <div className="flex gap-3 mt-4 overflow-x-auto pb-4 custom-scrollbar">
                                         {imagePreview.map((src, idx) => (
-                                            <div key={idx} className="relative w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden border border-border">
+                                            <div key={idx} className="relative w-28 h-28 flex-shrink-0 rounded-xl overflow-hidden border border-border group/preview shadow-md">
                                                 <img src={src} alt="Preview" className="w-full h-full object-cover" />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeImage(idx)}
+                                                    className="absolute top-1.5 right-1.5 w-7 h-7 rounded-full bg-red-500 text-white flex items-center justify-center opacity-0 group-hover/preview:opacity-100 transition-opacity hover:bg-red-600 shadow-lg z-10"
+                                                >
+                                                    <X className="w-4 h-4" />
+                                                </button>
+                                                {idx === 0 && (
+                                                    <div className="absolute bottom-0 inset-x-0 bg-neon-silver/90 text-black text-[10px] font-bold py-1 text-center">
+                                                        PRIMARY
+                                                    </div>
+                                                )}
                                             </div>
                                         ))}
                                     </div>

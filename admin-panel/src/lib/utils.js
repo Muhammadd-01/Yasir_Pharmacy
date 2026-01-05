@@ -15,8 +15,8 @@ export function getImageUrl(path) {
 
     if (typeof path !== 'string') return '/placeholder-product.jpg';
 
-    if (path.startsWith('http')) return path;
-    const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
+    if (path.startsWith('http') || path.startsWith('blob:')) return path;
+    const baseUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5001';
     return `${baseUrl}${path.startsWith('/') ? '' : '/'}${path}`;
 }
 

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { User, Mail, Phone, MapPin, Save, Loader2, Camera, Upload } from 'lucide-react';
 import { useAuth, useNotification } from '@/context';
@@ -26,6 +26,22 @@ const Profile = () => {
     const [profileImage, setProfileImage] = useState(null);
     const [imagePreview, setImagePreview] = useState(user?.profileImage || null);
     const [fetchingLocation, setFetchingLocation] = useState(false);
+
+    useEffect(() => {
+        if (user) {
+            setFormData({
+                name: user.name || '',
+                email: user.email || '',
+                phone: user.phone || '',
+                street: user.address?.street || '',
+                city: user.address?.city || '',
+                state: user.address?.state || '',
+                zipCode: user.address?.zipCode || '',
+                country: user.address?.country || 'Pakistan'
+            });
+            setImagePreview(user.profileImage || null);
+        }
+    }, [user]);
 
     const handleChange = (e) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
