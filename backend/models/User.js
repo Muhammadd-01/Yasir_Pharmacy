@@ -33,6 +33,10 @@ const userSchema = new mongoose.Schema({
         zipCode: String,
         country: { type: String, default: 'Pakistan' }
     },
+    profileImage: {
+        type: String,
+        default: null
+    },
     role: {
         type: String,
         enum: ['customer', 'admin', 'superadmin'],

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Plus, Search, Edit, Trash2, Eye, EyeOff, Package, X, Upload, Loader2, Image as ImageIcon } from 'lucide-react';
+import { Plus, Search, Edit, Trash2, Eye, EyeOff, Package, X, Upload, Loader2, Image as ImageIcon, RefreshCw } from 'lucide-react';
 import { productsAPI, categoriesAPI } from '@/lib/api';
 import { useNotification } from '../context/NotificationContext';
+import { getImageUrl } from '@/lib/utils';
 
 const Products = () => {
     const { notify } = useNotification();
@@ -22,6 +23,7 @@ const Products = () => {
         price: '',
         stock: '',
         category: '',
+        subcategory: '',
         type: 'medicine',
         isActive: true,
         images: []
@@ -44,7 +46,7 @@ const Products = () => {
             setCategories(categoriesRes.data.data || []);
         } catch (error) {
             console.error('Failed to fetch:', error);
-            notify('error', 'Failed to fetch products');
+            notify.error('Failed to fetch products');
         } finally {
             setLoading(false);
         }
@@ -54,10 +56,10 @@ const Products = () => {
         try {
             await productsAPI.toggle(id);
             fetchData();
-            notify('success', 'Product status updated successfully');
+            notify.success('Product status updated successfully');
         } catch (error) {
             console.error('Failed to toggle:', error);
-            notify('error', 'Failed to update status');
+            notify.error('Failed to update status');
         }
     };
 
@@ -66,10 +68,10 @@ const Products = () => {
         try {
             await productsAPI.delete(id);
             fetchData();
-            notify('success', 'Product deleted successfully');
+            notify.success('Product deleted successfully');
         } catch (error) {
             console.error('Failed to delete:', error);
-            notify('error', 'Failed to delete product');
+            notify.error('Failed to delete product');
         }
     };
 
@@ -93,13 +95,16 @@ const Products = () => {
             data.append('price', formData.price);
             data.append('stock', formData.stock);
             data.append('category', formData.category);
+            data.append('subcategory', formData.subcategory);
             data.append('type', formData.type);
             data.append('isActive', formData.isActive);
 
             // Append images
-            formData.images.forEach(image => {
-                data.append('images', image);
-            });
+            if (formData.images && formData.images.forEach) {
+                formData.images.forEach(image => {
+                    data.append('images', image);
+                });
+            }
 
             if (editingProduct) {
                 await productsAPI.update(editingProduct._id, data);
@@ -112,7 +117,7 @@ const Products = () => {
             fetchData();
         } catch (error) {
             console.error('Failed to save product:', error);
-            alert(error.response?.data?.message || 'Failed to save product');
+            notify.error(error.response?.data?.message || 'Failed to save product');
         } finally {
             setSubmitLoading(false);
         }
@@ -125,12 +130,21 @@ const Products = () => {
                     <h1 className="text-2xl font-bold">Products</h1>
                     <p className="text-muted-foreground">Manage your product inventory</p>
                 </div>
-                <button
-                    onClick={() => { setEditingProduct(null); setShowModal(true); }}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-neon-silver text-black font-medium hover:shadow-lg transition-all"
-                >
-                    <Plus className="w-4 h-4" /> Add Product
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => fetchData()}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border hover:bg-white/5 transition-colors"
+                        title="Refresh"
+                    >
+                        <RefreshCw className="w-4 h-4" />
+                    </button>
+                    <button
+                        onClick={() => { setEditingProduct(null); setShowModal(true); }}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-neon-silver text-black font-medium hover:shadow-lg transition-all"
+                    >
+                        <Plus className="w-4 h-4" /> Add Product
+                    </button>
+                </div>
             </div>
 
             {/* Filters */}
@@ -186,58 +200,80 @@ const Products = () => {
                                 <tr><td colSpan="6" className="px-4 py-8 text-center text-muted-foreground">No products found</td></tr>
                             ) : (
                                 products.map((product) => (
-                                    <tr key={product._id} className="hover:bg-white/5 transition-colors">
-                                        <td className="px-4 py-3">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-lg bg-zinc-800 overflow-hidden flex items-center justify-center border border-border">
+                                    <tr key={product._id} className="group hover:bg-white/5 transition-colors">
+                                        <td className="px-4 py-4">
+                                            <div className="flex items-center gap-4">
+                                                <div className="relative w-12 h-12 rounded-lg bg-zinc-800 overflow-hidden flex items-center justify-center border border-border group-hover:border-neon-silver/50 transition-colors">
                                                     {product.images?.[0] ? (
-                                                        <img src={product.images[0]} alt={product.name} className="w-full h-full object-cover" />
+                                                        <img
+                                                            src={getImageUrl(product.images[0]?.url || product.images[0])}
+                                                            alt={product.name}
+                                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                                        />
                                                     ) : (
-                                                        <Package className="w-5 h-5 text-muted-foreground" />
+                                                        <Package className="w-6 h-6 text-muted-foreground" />
                                                     )}
                                                 </div>
                                                 <div>
-                                                    <p className="font-medium text-sm">{product.name}</p>
-                                                    <p className="text-xs text-muted-foreground">{product.category?.name}</p>
+                                                    <p className="font-medium text-base group-hover:text-neon-silver transition-colors">{product.name}</p>
+                                                    <p className="text-xs text-muted-foreground">
+                                                        {product.category?.name}
+                                                        {product.subcategory && typeof product.subcategory === 'string' && ` • ${product.subcategory}`}
+                                                    </p>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="px-4 py-3">
-                                            <span className={`px-2 py-1 rounded-full text-xs ${product.type === 'medicine' ? 'bg-blue-500/20 text-blue-400' : 'bg-purple-500/20 text-purple-400'
+                                        <td className="px-4 py-4">
+                                            <span className={`px-2.5 py-1 rounded-full text-xs font-medium border ${product.type === 'medicine'
+                                                ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                                : 'bg-purple-500/10 text-purple-400 border-purple-500/20'
                                                 }`}>
-                                                {product.type}
+                                                {product.type.charAt(0).toUpperCase() + product.type.slice(1)}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3 font-medium">Rs. {product.price?.toLocaleString()}</td>
-                                        <td className="px-4 py-3">
-                                            <span className={product.stock <= 10 ? 'text-red-400 font-medium' : ''}>
-                                                {product.stock}
-                                            </span>
+                                        <td className="px-4 py-4 font-medium">
+                                            <span className="text-neon-silver">Rs. {product.price?.toLocaleString()}</span>
                                         </td>
-                                        <td className="px-4 py-3">
-                                            <span className={`px-2 py-1 rounded-full text-xs ${product.isActive ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                                        <td className="px-4 py-4">
+                                            <div className="flex flex-col gap-1">
+                                                <span className={`font-medium ${product.stock <= 10 ? 'text-red-400' : ''}`}>
+                                                    {product.stock} units
+                                                </span>
+                                                {product.stock <= 10 && product.stock > 0 && (
+                                                    <span className="text-[10px] text-red-400">Low Stock</span>
+                                                )}
+                                                {product.stock === 0 && (
+                                                    <span className="text-[10px] text-red-500 font-bold">Out of Stock</span>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-4">
+                                            <span className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium w-fit ${product.isActive
+                                                ? 'bg-green-500/10 text-green-400 border border-green-500/20'
+                                                : 'bg-red-500/10 text-red-400 border border-red-500/20'
                                                 }`}>
+                                                <span className={`w-1.5 h-1.5 rounded-full ${product.isActive ? 'bg-green-400' : 'bg-red-400'}`} />
                                                 {product.isActive ? 'Active' : 'Inactive'}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3">
-                                            <div className="flex items-center justify-end gap-2">
+                                        <td className="px-4 py-4">
+                                            <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
                                                 <button
                                                     onClick={() => handleToggle(product._id)}
-                                                    className="p-2 rounded-lg hover:bg-white/5 transition-colors"
+                                                    className="p-2 rounded-lg hover:bg-white/10 transition-colors"
                                                     title={product.isActive ? 'Deactivate' : 'Activate'}
                                                 >
                                                     {product.isActive ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                                                 </button>
                                                 <button
                                                     onClick={() => { setEditingProduct(product); setShowModal(true); }}
-                                                    className="p-2 rounded-lg hover:bg-white/5 transition-colors text-blue-400"
+                                                    className="p-2 rounded-lg hover:bg-blue-500/20 text-blue-400 transition-colors"
                                                 >
                                                     <Edit className="w-4 h-4" />
                                                 </button>
                                                 <button
                                                     onClick={() => handleDelete(product._id)}
-                                                    className="p-2 rounded-lg hover:bg-red-500/10 text-red-400 transition-colors"
+                                                    className="p-2 rounded-lg hover:bg-red-500/20 text-red-400 transition-colors"
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </button>
@@ -306,6 +342,24 @@ const Products = () => {
                                     </select>
                                 </div>
 
+                                {formData.category && categories.find(c => c._id === formData.category)?.subcategories?.length > 0 && (
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium">Subcategory</label>
+                                        <select
+                                            value={formData.subcategory}
+                                            onChange={e => setFormData({ ...formData, subcategory: e.target.value })}
+                                            className="w-full h-10 px-4 rounded-lg bg-muted/50 border border-border focus:border-neon-silver focus:outline-none text-foreground"
+                                        >
+                                            <option value="">Select Subcategory</option>
+                                            {categories.find(c => c._id === formData.category)?.subcategories.map((sub, idx) => (
+                                                <option key={idx} value={typeof sub === 'string' ? sub : sub.name}>
+                                                    {typeof sub === 'string' ? sub : sub.name}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+
                                 <div className="space-y-2">
                                     <label className="text-sm font-medium">Price (Rs.)</label>
                                     <input
@@ -346,6 +400,7 @@ const Products = () => {
                             <div className="space-y-2">
                                 <label className="text-sm font-medium">Description</label>
                                 <textarea
+                                    required
                                     value={formData.description}
                                     onChange={e => setFormData({ ...formData, description: e.target.value })}
                                     rows="4"

@@ -99,11 +99,49 @@ export const getCategoriesByType = asyncHandler(async (req, res) => {
  * @access  Private/Admin
  */
 export const createCategory = asyncHandler(async (req, res) => {
-    if (req.file) {
-        req.body.image = `/uploads/${req.file.filename}`;
+    const { name, type, description, subcategories } = req.body;
+
+    // Check for existing slug collision (including soft-deleted)
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+    const existingCategory = await Category.findOne({ slug });
+
+    if (existingCategory) {
+        if (existingCategory.isActive) {
+            throw new ApiError('Category with this name already exists', 400);
+        } else {
+            // If it's a soft-deleted category, rename its slug to free up the name
+            existingCategory.slug = `${existingCategory.slug}-deleted-${Date.now()}`;
+            await existingCategory.save();
+        }
     }
 
-    const category = await Category.create(req.body);
+    let image = '';
+
+    if (req.file) {
+        image = `/uploads/${req.file.filename}`;
+    }
+
+    // Parse subcategories if sent as JSON string (common in FormData)
+    let parsedSubcategories = [];
+    if (subcategories) {
+        try {
+            parsedSubcategories = typeof subcategories === 'string' ? JSON.parse(subcategories) : subcategories;
+            // Ensure format is array of objects with name
+            parsedSubcategories = parsedSubcategories.map(sub =>
+                typeof sub === 'string' ? { name: sub } : sub
+            );
+        } catch (e) {
+            console.error('Subcategory parse error', e);
+        }
+    }
+
+    const category = await Category.create({
+        name,
+        type,
+        description,
+        image,
+        subcategories: parsedSubcategories
+    });
 
     res.status(201).json({
         success: true,
@@ -118,13 +156,34 @@ export const createCategory = asyncHandler(async (req, res) => {
  * @access  Private/Admin
  */
 export const updateCategory = asyncHandler(async (req, res) => {
+    const { name, type, description, subcategories } = req.body;
+
+    // Prepare update data
+    const updateData = {};
+    if (name) updateData.name = name;
+    if (type) updateData.type = type;
+    if (description) updateData.description = description;
+
     if (req.file) {
-        req.body.image = `/uploads/${req.file.filename}`;
+        updateData.image = `/uploads/${req.file.filename}`;
+    }
+
+    // Parse subcategories if sent as JSON string
+    if (subcategories) {
+        try {
+            let parsedSubcategories = typeof subcategories === 'string' ? JSON.parse(subcategories) : subcategories;
+            parsedSubcategories = parsedSubcategories.map(sub =>
+                typeof sub === 'string' ? { name: sub } : sub
+            );
+            updateData.subcategories = parsedSubcategories;
+        } catch (e) {
+            console.error('Subcategory parse error', e);
+        }
     }
 
     const category = await Category.findByIdAndUpdate(
         req.params.id,
-        req.body,
+        updateData,
         { new: true, runValidators: true }
     );
 
@@ -145,18 +204,15 @@ export const updateCategory = asyncHandler(async (req, res) => {
  * @access  Private/Admin
  */
 export const deleteCategory = asyncHandler(async (req, res) => {
-    // Check if category has products
-    const productCount = await Product.countDocuments({ category: req.params.id });
+    // Check if category has ACTIVE products
+    const productCount = await Product.countDocuments({ category: req.params.id, isActive: true });
 
     if (productCount > 0) {
-        throw new ApiError(`Cannot delete category with ${productCount} products. Move or delete products first.`, 400);
+        throw new ApiError(`Cannot delete category with ${productCount} active products. Move or delete products first.`, 400);
     }
 
-    const category = await Category.findByIdAndUpdate(
-        req.params.id,
-        { isActive: false },
-        { new: true }
-    );
+    // Need to get the category first to get its slug
+    const category = await Category.findByIdAndDelete(req.params.id);
 
     if (!category) {
         throw new ApiError('Category not found', 404);
@@ -187,6 +243,7 @@ export const getAdminCategories = asyncHandler(async (req, res) => {
 
     // Get product counts
     const counts = await Product.aggregate([
+        { $match: { isActive: true } },
         { $group: { _id: '$category', count: { $sum: 1 } } }
     ]);
 

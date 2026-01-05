@@ -202,6 +202,7 @@ export const clearCart = asyncHandler(async (req, res) => {
  * @route   GET /api/cart/count
  * @access  Private
  */
+// ... existing code ...
 export const getCartCount = asyncHandler(async (req, res) => {
     const cart = await Cart.findOne({ user: req.user._id });
 
@@ -210,5 +211,22 @@ export const getCartCount = asyncHandler(async (req, res) => {
         data: {
             count: cart ? cart.totalItems : 0
         }
+    });
+});
+
+/**
+ * @desc    Get all carts (Admin)
+ * @route   GET /api/admin/carts
+ * @access  Private/Admin
+ */
+export const getAllCarts = asyncHandler(async (req, res) => {
+    const carts = await Cart.find({ 'items.0': { $exists: true } }) // Only get non-empty carts
+        .populate('user', 'name email')
+        .populate('items.product', 'name price images')
+        .sort('-updatedAt');
+
+    res.json({
+        success: true,
+        data: carts
     });
 });

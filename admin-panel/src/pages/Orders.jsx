@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Search, Eye, Package } from 'lucide-react';
+import { Search, Eye, Package, RefreshCw } from 'lucide-react';
 import { ordersAPI } from '@/lib/api';
+import { useNotification } from '../context/NotificationContext';
 
 const Orders = () => {
+    const { notify } = useNotification();
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [statusFilter, setStatusFilter] = useState('');
@@ -17,6 +19,7 @@ const Orders = () => {
             setOrders(res.data.data.orders || []);
         } catch (error) {
             console.error('Failed to fetch:', error);
+            notify.error('Failed to fetch orders');
         } finally {
             setLoading(false);
         }
@@ -26,8 +29,10 @@ const Orders = () => {
         try {
             await ordersAPI.updateStatus(id, status);
             fetchOrders();
+            notify.success(`Order status updated to ${status}`);
         } catch (error) {
             console.error('Failed to update:', error);
+            notify.error(error.response?.data?.message || 'Failed to update order status');
         }
     };
 
@@ -43,7 +48,16 @@ const Orders = () => {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-2xl font-bold">Orders</h1>
+                <div className="flex items-center justify-between mb-2">
+                    <h1 className="text-2xl font-bold">Orders</h1>
+                    <button
+                        onClick={() => fetchOrders()}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border hover:bg-white/5 transition-colors"
+                        title="Refresh"
+                    >
+                        <RefreshCw className="w-4 h-4" />
+                    </button>
+                </div>
                 <p className="text-muted-foreground">Manage customer orders</p>
             </div>
 

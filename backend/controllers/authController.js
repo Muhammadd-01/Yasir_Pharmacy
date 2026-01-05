@@ -247,9 +247,25 @@ export const getMe = asyncHandler(async (req, res) => {
 export const updateProfile = asyncHandler(async (req, res) => {
     const { name, phone, address } = req.body;
 
+    let parsedAddress = address;
+    if (typeof address === 'string') {
+        try {
+            parsedAddress = JSON.parse(address);
+        } catch (error) {
+            // Keep as string or ignore if invalid JSON
+        }
+    }
+
+    const updateData = { name, phone, address: parsedAddress };
+
+    // Handle profile image upload
+    if (req.file) {
+        updateData.profileImage = `/uploads/${req.file.filename}`;
+    }
+
     const user = await User.findByIdAndUpdate(
         req.user._id,
-        { name, phone, address },
+        updateData,
         { new: true, runValidators: true }
     );
 
@@ -262,6 +278,7 @@ export const updateProfile = asyncHandler(async (req, res) => {
             email: user.email,
             phone: user.phone,
             address: user.address,
+            profileImage: user.profileImage,
             role: user.role
         }
     });

@@ -12,6 +12,7 @@ import {
 import { protect } from '../middleware/auth.js';
 import { validate } from '../middleware/validate.js';
 import { registerValidation, loginValidation } from '../utils/validators.js';
+import upload from '../middleware/upload.js';
 
 const router = express.Router();
 
@@ -24,7 +25,7 @@ router.post('/refresh', refreshToken);
 // Protected routes
 router.post('/logout', protect, logout);
 router.get('/me', protect, getMe);
-router.put('/me', protect, updateProfile);
+router.put('/me', protect, upload.single('profileImage'), updateProfile);
 router.put('/password', protect, changePassword);
 
 export default router;

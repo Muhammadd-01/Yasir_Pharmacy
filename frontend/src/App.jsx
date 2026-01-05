@@ -13,7 +13,10 @@ import {
     HealthTips,
     Services,
     Orders,
-    Profile
+    Profile,
+    Notifications,
+    Checkout,
+    Wishlist
 } from './pages';
 
 import { ThemeProvider } from './context/ThemeContext';
@@ -42,6 +45,9 @@ function App() {
                                     <Route path="/general-items/:slug" element={<ProductDetail type="general" />} />
                                     <Route path="/cart" element={<Cart />} />
                                     <Route path="/orders" element={<Orders />} />
+                                    <Route path="/checkout" element={<Checkout />} />
+                                    <Route path="/wishlist" element={<Wishlist />} />
+                                    <Route path="/notifications" element={<Notifications />} />
                                     <Route path="/profile" element={<Profile />} />
                                     <Route path="/health-tips" element={<HealthTips />} />
                                     <Route path="/services" element={<Services />} />

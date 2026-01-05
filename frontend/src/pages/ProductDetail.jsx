@@ -8,7 +8,9 @@ import {
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import ProductCard from '@/components/ProductCard';
-import { productsAPI } from '@/lib/api';
+import ReviewSection from '@/components/reviews/ReviewSection';
+import ShareButton from '@/components/ShareButton';
+import { productsAPI, wishlistAPI } from '@/lib/api';
 import { useCart, useAuth, useNotification } from '@/context';
 
 const ProductDetail = ({ type = 'medicine' }) => {
@@ -18,6 +20,8 @@ const ProductDetail = ({ type = 'medicine' }) => {
     const [loading, setLoading] = useState(true);
     const [quantity, setQuantity] = useState(1);
     const [selectedImage, setSelectedImage] = useState(0);
+    const [inWishlist, setInWishlist] = useState(false);
+    const [wishlistLoading, setWishlistLoading] = useState(false);
 
     const { addToCart, loading: cartLoading } = useCart();
     const { isAuthenticated } = useAuth();
@@ -33,6 +37,11 @@ const ProductDetail = ({ type = 'medicine' }) => {
             const response = await productsAPI.getById(slug);
             setProduct(response.data.data);
 
+            // Check wishlist status if authenticated
+            if (isAuthenticated) {
+                checkWishlistStatus(response.data.data._id);
+            }
+
             // Fetch related products
             const relatedRes = await productsAPI.getRelated(response.data.data._id, 4);
             setRelatedProducts(relatedRes.data.data || []);
@@ -41,6 +50,40 @@ const ProductDetail = ({ type = 'medicine' }) => {
             notify.error('Product not found');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const checkWishlistStatus = async (id) => {
+        try {
+            const res = await wishlistAPI.get();
+            const exists = res.data.data?.products?.some(item => item.product._id === id);
+            setInWishlist(exists);
+        } catch (error) {
+            console.error('Failed to check wishlist:', error);
+        }
+    };
+
+    const handleWishlistToggle = async () => {
+        if (!isAuthenticated) {
+            notify.auth('Please login to use wishlist');
+            return;
+        }
+
+        setWishlistLoading(true);
+        try {
+            if (inWishlist) {
+                await wishlistAPI.remove(product._id);
+                setInWishlist(false);
+                notify.success('Removed from wishlist');
+            } else {
+                await wishlistAPI.add(product._id);
+                setInWishlist(true);
+                notify.success('Added to wishlist');
+            }
+        } catch (error) {
+            notify.error('Failed to update wishlist');
+        } finally {
+            setWishlistLoading(false);
         }
     };
 
@@ -164,8 +207,8 @@ const ProductDetail = ({ type = 'medicine' }) => {
                                             <Star
                                                 key={star}
                                                 className={`w-5 h-5 ${star <= product.ratings.average
-                                                        ? 'fill-yellow-400 text-yellow-400'
-                                                        : 'text-gray-600'
+                                                    ? 'fill-yellow-400 text-yellow-400'
+                                                    : 'text-gray-600'
                                                     }`}
                                             />
                                         ))}
@@ -191,8 +234,8 @@ const ProductDetail = ({ type = 'medicine' }) => {
 
                         {/* Stock Status */}
                         <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm ${product.stock > 0
-                                ? 'bg-green-500/10 text-green-400'
-                                : 'bg-red-500/10 text-red-400'
+                            ? 'bg-green-500/10 text-green-400'
+                            : 'bg-red-500/10 text-red-400'
                             }`}>
                             <span className={`w-2 h-2 rounded-full ${product.stock > 0 ? 'bg-green-400' : 'bg-red-400'
                                 }`} />
@@ -256,12 +299,20 @@ const ProductDetail = ({ type = 'medicine' }) => {
                                 {product.stock === 0 ? 'Out of Stock' : 'Add to Cart'}
                             </Button>
 
-                            <Button variant="outline" size="icon" className="h-12 w-12">
-                                <Heart className="w-5 h-5" />
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                className={`h-12 w-12 ${inWishlist ? 'text-red-500 border-red-500/50 bg-red-500/10' : ''}`}
+                                onClick={handleWishlistToggle}
+                                disabled={wishlistLoading}
+                            >
+                                <Heart className={`w-5 h-5 ${inWishlist ? 'fill-current' : ''}`} />
                             </Button>
-                            <Button variant="outline" size="icon" className="h-12 w-12">
-                                <Share2 className="w-5 h-5" />
-                            </Button>
+
+                            <ShareButton
+                                title={product.name}
+                                text={`Check out ${product.name} on Yasir Pharmacy!`}
+                            />
                         </div>
 
                         {/* Features */}
@@ -286,6 +337,11 @@ const ProductDetail = ({ type = 'medicine' }) => {
                             </div>
                         </div>
                     </motion.div>
+                </div>
+
+                {/* Reviews Section */}
+                <div className="mt-20">
+                    <ReviewSection productId={product._id} />
                 </div>
 
                 {/* Related Products */}

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Search, Edit, Trash2, UserPlus, Users as UsersIcon, Eye, EyeOff, X, Loader2 } from 'lucide-react';
+import { Search, Edit, Trash2, UserPlus, Users as UsersIcon, Eye, EyeOff, X, Loader2, RefreshCw } from 'lucide-react';
 import { usersAPI } from '@/lib/api';
 import { useNotification } from '../context/NotificationContext';
 
@@ -59,7 +59,7 @@ const Users = () => {
             setUsers(res.data.data.users || []);
         } catch (error) {
             console.error('Failed to fetch:', error);
-            notify('error', 'Failed to fetch users');
+            notify.error('Failed to fetch users');
         } finally {
             setLoading(false);
         }
@@ -69,15 +69,15 @@ const Users = () => {
         try {
             await usersAPI.toggle(id);
             fetchUsers();
-            notify('success', 'User status updated');
+            notify.success('User status updated');
         } catch (error) {
-            notify('error', error.response?.data?.message || 'Failed to toggle');
+            notify.error(error.response?.data?.message || 'Failed to toggle');
         }
     };
 
     const handleDelete = async (user) => {
         if (user.role === 'superadmin') {
-            notify('error', 'Cannot delete Super Admin');
+            notify.error('Cannot delete Super Admin');
             return;
         }
         if (!confirm('Are you sure you want to delete this user?')) return;
@@ -85,9 +85,9 @@ const Users = () => {
         try {
             await usersAPI.delete(user._id);
             fetchUsers();
-            notify('success', 'User deleted successfully');
+            notify.success('User deleted successfully');
         } catch (error) {
-            notify('error', error.response?.data?.message || 'Failed to delete');
+            notify.error(error.response?.data?.message || 'Failed to delete');
         }
     };
 
@@ -100,17 +100,17 @@ const Users = () => {
                 const updateData = { ...formData };
                 if (!updateData.password) delete updateData.password;
                 await usersAPI.update(editingUser._id, updateData);
-                notify('success', 'User updated successfully');
+                notify.success('User updated successfully');
             } else {
                 await usersAPI.create(formData);
-                notify('success', 'User created successfully');
+                notify.success('User created successfully');
             }
             setShowModal(false);
             setEditingUser(null);
             fetchUsers();
         } catch (error) {
             console.error('Failed to save user:', error);
-            notify('error', error.response?.data?.message || 'Failed to save user');
+            notify.error(error.response?.data?.message || 'Failed to save user');
         } finally {
             setSubmitLoading(false);
         }
@@ -129,12 +129,21 @@ const Users = () => {
                     <h1 className="text-2xl font-bold">Users</h1>
                     <p className="text-muted-foreground">Manage user accounts</p>
                 </div>
-                <button
-                    onClick={() => { setEditingUser(null); setShowModal(true); }}
-                    className="flex items-center gap-2 px-4 py-2 rounded-lg bg-neon-silver text-black font-medium hover:shadow-lg transition-all"
-                >
-                    <UserPlus className="w-4 h-4" /> Add User
-                </button>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => fetchUsers()}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg border border-border hover:bg-white/5 transition-colors"
+                        title="Refresh"
+                    >
+                        <RefreshCw className="w-4 h-4" />
+                    </button>
+                    <button
+                        onClick={() => { setEditingUser(null); setShowModal(true); }}
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-neon-silver text-black font-medium hover:shadow-lg transition-all"
+                    >
+                        <UserPlus className="w-4 h-4" /> Add User
+                    </button>
+                </div>
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4">

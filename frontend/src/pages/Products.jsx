@@ -19,6 +19,7 @@ const Products = ({ type = 'medicine' }) => {
 
     // Filter states from URL
     const currentCategory = searchParams.get('category') || '';
+    const currentSubcategory = searchParams.get('subcategory') || '';
     const currentSearch = searchParams.get('search') || '';
     const currentSort = searchParams.get('sort') || '-createdAt';
     const currentPage = parseInt(searchParams.get('page')) || 1;
@@ -40,6 +41,7 @@ const Products = ({ type = 'medicine' }) => {
                 limit: 12,
                 sort: currentSort,
                 ...(currentCategory && { category: currentCategory }),
+                ...(currentSubcategory && { subcategory: currentSubcategory }),
                 ...(currentSearch && { search: currentSearch }),
             };
 
@@ -164,6 +166,33 @@ const Products = ({ type = 'medicine' }) => {
                                 </div>
                             </div>
 
+
+                            {/* Subcategories (for Medicines) */}
+                            {type === 'medicine' && (
+                                <div className="mb-6">
+                                    <label className="text-sm text-muted-foreground mb-2 block">Medicine Type</label>
+                                    <div className="space-y-2">
+                                        <button
+                                            onClick={() => updateFilter('subcategory', '')}
+                                            className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${!currentSubcategory ? 'bg-neon-silver/20 text-white' : 'hover:bg-white/5'
+                                                }`}
+                                        >
+                                            All Types
+                                        </button>
+                                        {['Tablet', 'Capsule', 'Syrup', 'Injection'].map((sub) => (
+                                            <button
+                                                key={sub}
+                                                onClick={() => updateFilter('subcategory', sub)}
+                                                className={`w-full text-left px-3 py-2 rounded-lg text-sm transition-colors ${currentSubcategory === sub ? 'bg-neon-silver/20 text-white' : 'hover:bg-white/5'
+                                                    }`}
+                                            >
+                                                {sub}s
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+
                             {/* Sort */}
                             <div className="mb-6">
                                 <label className="text-sm text-muted-foreground mb-2 block">Sort By</label>
@@ -250,8 +279,8 @@ const Products = ({ type = 'medicine' }) => {
 
                         {/* Products */}
                         <div className={`grid gap-6 ${viewMode === 'grid'
-                                ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
-                                : 'grid-cols-1'
+                            ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+                            : 'grid-cols-1'
                             }`}>
                             {loading ? (
                                 Array.from({ length: 12 }).map((_, i) => (
@@ -314,82 +343,108 @@ const Products = ({ type = 'medicine' }) => {
                         )}
                     </main>
                 </div>
-            </div>
+            </div >
 
             {/* Mobile Filters Modal */}
-            {showFilters && (
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="fixed inset-0 z-50 bg-black/80 lg:hidden"
-                    onClick={() => setShowFilters(false)}
-                >
+            {
+                showFilters && (
                     <motion.div
-                        initial={{ x: '-100%' }}
-                        animate={{ x: 0 }}
-                        className="absolute left-0 top-0 bottom-0 w-80 bg-background p-6 overflow-y-auto"
-                        onClick={(e) => e.stopPropagation()}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className="fixed inset-0 z-50 bg-black/80 lg:hidden"
+                        onClick={() => setShowFilters(false)}
                     >
-                        <div className="flex items-center justify-between mb-6">
-                            <h3 className="font-semibold">Filters</h3>
-                            <Button variant="ghost" size="icon" onClick={() => setShowFilters(false)}>
-                                <X className="w-5 h-5" />
-                            </Button>
-                        </div>
-
-                        {/* Same filter content as sidebar */}
-                        <div className="space-y-6">
-                            <div>
-                                <label className="text-sm text-muted-foreground mb-2 block">Search</label>
-                                <Input
-                                    placeholder="Search products..."
-                                    value={currentSearch}
-                                    onChange={(e) => updateFilter('search', e.target.value)}
-                                />
+                        <motion.div
+                            initial={{ x: '-100%' }}
+                            animate={{ x: 0 }}
+                            className="absolute left-0 top-0 bottom-0 w-80 bg-background p-6 overflow-y-auto"
+                            onClick={(e) => e.stopPropagation()}
+                        >
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="font-semibold">Filters</h3>
+                                <Button variant="ghost" size="icon" onClick={() => setShowFilters(false)}>
+                                    <X className="w-5 h-5" />
+                                </Button>
                             </div>
 
-                            <div>
-                                <label className="text-sm text-muted-foreground mb-2 block">Category</label>
-                                <div className="space-y-2">
-                                    <button
-                                        onClick={() => { updateFilter('category', ''); setShowFilters(false); }}
-                                        className={`w-full text-left px-3 py-2 rounded-lg text-sm ${!currentCategory ? 'bg-neon-silver/20' : 'hover:bg-white/5'
-                                            }`}
-                                    >
-                                        All Categories
-                                    </button>
-                                    {categories.map((cat) => (
+                            <div className="space-y-6">
+                                <div>
+                                    <label className="text-sm text-muted-foreground mb-2 block">Search</label>
+                                    <Input
+                                        placeholder="Search products..."
+                                        value={currentSearch}
+                                        onChange={(e) => updateFilter('search', e.target.value)}
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="text-sm text-muted-foreground mb-2 block">Category</label>
+                                    <div className="space-y-2">
                                         <button
-                                            key={cat._id}
-                                            onClick={() => { updateFilter('category', cat._id); setShowFilters(false); }}
-                                            className={`w-full text-left px-3 py-2 rounded-lg text-sm ${currentCategory === cat._id ? 'bg-neon-silver/20' : 'hover:bg-white/5'
+                                            onClick={() => { updateFilter('category', ''); setShowFilters(false); }}
+                                            className={`w-full text-left px-3 py-2 rounded-lg text-sm ${!currentCategory ? 'bg-neon-silver/20' : 'hover:bg-white/5'
                                                 }`}
                                         >
-                                            {cat.name}
+                                            All Categories
                                         </button>
-                                    ))}
+                                        {categories.map((cat) => (
+                                            <button
+                                                key={cat._id}
+                                                onClick={() => { updateFilter('category', cat._id); setShowFilters(false); }}
+                                                className={`w-full text-left px-3 py-2 rounded-lg text-sm ${currentCategory === cat._id ? 'bg-neon-silver/20' : 'hover:bg-white/5'
+                                                    }`}
+                                            >
+                                                {cat.name}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {type === 'medicine' && (
+                                    <div>
+                                        <label className="text-sm text-muted-foreground mb-2 block">Medicine Type</label>
+                                        <div className="space-y-2">
+                                            <button
+                                                onClick={() => { updateFilter('subcategory', ''); setShowFilters(false); }}
+                                                className={`w-full text-left px-3 py-2 rounded-lg text-sm ${!currentSubcategory ? 'bg-neon-silver/20' : 'hover:bg-white/5'
+                                                    }`}
+                                            >
+                                                All Types
+                                            </button>
+                                            {['Tablet', 'Capsule', 'Syrup', 'Injection'].map((sub) => (
+                                                <button
+                                                    key={sub}
+                                                    onClick={() => { updateFilter('subcategory', sub); setShowFilters(false); }}
+                                                    className={`w-full text-left px-3 py-2 rounded-lg text-sm ${currentSubcategory === sub ? 'bg-neon-silver/20' : 'hover:bg-white/5'
+                                                        }`}
+                                                >
+                                                    {sub}s
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                <div>
+                                    <label className="text-sm text-muted-foreground mb-2 block">Sort By</label>
+                                    <select
+                                        value={currentSort}
+                                        onChange={(e) => { updateFilter('sort', e.target.value); setShowFilters(false); }}
+                                        className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm"
+                                    >
+                                        {sortOptions.map((option) => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </select>
                                 </div>
                             </div>
-
-                            <div>
-                                <label className="text-sm text-muted-foreground mb-2 block">Sort By</label>
-                                <select
-                                    value={currentSort}
-                                    onChange={(e) => { updateFilter('sort', e.target.value); setShowFilters(false); }}
-                                    className="w-full bg-background border border-border rounded-lg px-3 py-2 text-sm"
-                                >
-                                    {sortOptions.map((option) => (
-                                        <option key={option.value} value={option.value}>
-                                            {option.label}
-                                        </option>
-                                    ))}
-                                </select>
-                            </div>
-                        </div>
+                        </motion.div>
                     </motion.div>
-                </motion.div>
-            )}
-        </div>
+                )
+            }
+        </div >
     );
 };
 

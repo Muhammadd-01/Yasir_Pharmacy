@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { ShoppingCart, Plus, Star } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useCart, useAuth, useNotification } from '@/context';
+import { getImageUrl } from '@/lib/utils';
 
 const ProductCard = ({ product }) => {
     const { addToCart, loading } = useCart();
@@ -26,7 +27,7 @@ const ProductCard = ({ product }) => {
         }
     };
 
-    const primaryImage = product.images?.[0]?.url || '/placeholder-product.jpg';
+    const primaryImage = getImageUrl(product.images?.[0]?.url || product.images?.[0]);
     const hasDiscount = product.comparePrice && product.comparePrice > product.price;
     const discountPercent = hasDiscount
         ? Math.round((1 - product.price / product.comparePrice) * 100)

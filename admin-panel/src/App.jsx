@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-// import { NotificationProvider } from './context/NotificationContext'; 
+import { NotificationProvider } from './context/NotificationContext';
 import Sidebar from './components/Sidebar';
 
 import {
@@ -9,7 +9,9 @@ import {
     Products,
     Categories,
     Orders,
-    Users
+    Users,
+    Carts,
+    Reviews
 } from './pages';
 
 // Protected Route Component
@@ -35,23 +37,25 @@ function App() {
     return (
         <Router>
             <AuthProvider>
-                {/* <NotificationProvider> */}
-                <Routes>
-                    <Route path="/login" element={<Login />} />
+                <NotificationProvider>
+                    <Routes>
+                        <Route path="/login" element={<Login />} />
 
-                    <Route path="/" element={
-                        <ProtectedRoute>
-                            <Sidebar />
-                        </ProtectedRoute>
-                    }>
-                        <Route index element={<Dashboard />} />
-                        <Route path="products" element={<Products />} />
-                        <Route path="categories" element={<Categories />} />
-                        <Route path="orders" element={<Orders />} />
-                        <Route path="users" element={<Users />} />
-                    </Route>
-                </Routes>
-                {/* </NotificationProvider> */}
+                        <Route path="/" element={
+                            <ProtectedRoute>
+                                <Sidebar />
+                            </ProtectedRoute>
+                        }>
+                            <Route index element={<Dashboard />} />
+                            <Route path="products" element={<Products />} />
+                            <Route path="categories" element={<Categories />} />
+                            <Route path="carts" element={<Carts />} />
+                            <Route path="orders" element={<Orders />} />
+                            <Route path="users" element={<Users />} />
+                            <Route path="reviews" element={<Reviews />} />
+                        </Route>
+                    </Routes>
+                </NotificationProvider>
             </AuthProvider>
         </Router>
     );

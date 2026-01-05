@@ -1,4 +1,6 @@
 import Product from '../models/Product.js';
+import Cart from '../models/Cart.js';
+import Notification from '../models/Notification.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
 
 /**
@@ -177,17 +179,34 @@ export const getRelatedProducts = asyncHandler(async (req, res) => {
  * @access  Private/Admin
  */
 export const createProduct = asyncHandler(async (req, res) => {
-    if (req.files && req.files.length > 0) {
-        req.body.images = req.files.map(file => `/uploads/${file.filename}`);
+    try {
+        let images = [];
+
+        // Handle uploaded files
+        if (req.files && req.files.length > 0) {
+            images = req.files.map(file => ({ url: `/uploads/${file.filename}` }));
+        }
+
+        // Add images to body
+        req.body.images = images;
+
+        console.log('Creating product with body:', JSON.stringify(req.body, null, 2));
+
+        const product = await Product.create(req.body);
+
+        res.status(201).json({
+            success: true,
+            message: 'Product created successfully',
+            data: product
+        });
+    } catch (error) {
+        console.error('Create Product Error:', error);
+        if (error.name === 'ValidationError') {
+            const messages = Object.values(error.errors).map(val => val.message);
+            throw new ApiError(messages.join(', '), 400);
+        }
+        throw error;
     }
-
-    const product = await Product.create(req.body);
-
-    res.status(201).json({
-        success: true,
-        message: 'Product created successfully',
-        data: product
-    });
 });
 
 /**
@@ -209,7 +228,7 @@ export const updateProduct = asyncHandler(async (req, res) => {
 
     // Handle new images
     if (req.files && req.files.length > 0) {
-        const newImages = req.files.map(file => `/uploads/${file.filename}`);
+        const newImages = req.files.map(file => ({ url: `/uploads/${file.filename}` }));
         images = [...images, ...newImages];
     }
 
@@ -250,9 +269,35 @@ export const deleteProduct = asyncHandler(async (req, res) => {
         throw new ApiError('Product not found', 404);
     }
 
+    // 1. Find all carts containing this product
+    const carts = await Cart.find({ 'items.product': req.params.id });
+
+    // 2. Iterate through carts to remove item and notify user
+    const notifications = [];
+    for (const cart of carts) {
+        // Remove item from cart
+        cart.items = cart.items.filter(item => item.product.toString() !== req.params.id);
+        await cart.save();
+
+        // Prepare notification
+        notifications.push({
+            user: cart.user,
+            title: 'Item Removed from Cart',
+            message: `The item "${product.name}" has been removed from your cart because it is no longer available.`,
+            type: 'product',
+            data: { productId: product._id }
+        });
+    }
+
+    // 3. Send notifications
+    if (notifications.length > 0) {
+        await Notification.insertMany(notifications);
+    }
+
     res.json({
         success: true,
-        message: 'Product deleted successfully'
+        message: 'Product deleted successfully. Users notified and carts updated.',
+        removedFromCarts: carts.length
     });
 });
 

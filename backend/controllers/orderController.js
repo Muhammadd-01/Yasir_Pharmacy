@@ -1,6 +1,7 @@
 import Order from '../models/Order.js';
 import Cart from '../models/Cart.js';
 import Product from '../models/Product.js';
+import Notification from '../models/Notification.js';
 import { asyncHandler, ApiError } from '../middleware/errorHandler.js';
 
 /**
@@ -299,6 +300,15 @@ export const updateOrderStatus = asyncHandler(async (req, res) => {
     });
 
     await order.save();
+
+    // Create notification for user
+    await Notification.create({
+        user: order.user,
+        title: 'Order Status Updated',
+        message: `Your order #${order.orderNumber} is now ${status}. ${note || ''}`,
+        type: 'order',
+        data: { orderId: order._id }
+    });
 
     res.json({
         success: true,

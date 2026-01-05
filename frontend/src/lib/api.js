@@ -79,7 +79,7 @@ export const authAPI = {
 
 // Users API (For Profile updates)
 export const usersAPI = {
-    updateProfile: (data) => api.put('/users/profile', data),
+    updateProfile: (data) => api.put('/auth/me', data),
 };
 
 // Products API
@@ -114,4 +114,25 @@ export const ordersAPI = {
     getMyOrders: (params) => api.get('/orders', { params }),
     getById: (id) => api.get(`/orders/${id}`),
     cancel: (id) => api.post(`/orders/${id}/cancel`),
+};
+
+// Notifications API
+export const notificationsAPI = {
+    getAll: () => api.get('/notifications'),
+    markAsRead: (id) => api.patch(`/notifications/${id}/read`),
+    delete: (id) => api.delete(`/notifications/${id}`)
+};
+
+export const reviewsAPI = {
+    getProductReviews: (productId, params) => api.get(`/reviews/product/${productId}`, { params }),
+    create: (data) => api.post('/reviews', data),
+    update: (id, data) => api.put(`/reviews/${id}`, data),
+    delete: (id) => api.delete(`/reviews/${id}`)
+};
+
+export const wishlistAPI = {
+    get: () => api.get('/wishlist'),
+    add: (productId) => api.post(`/wishlist/${productId}`),
+    remove: (productId) => api.delete(`/wishlist/${productId}`),
+    clear: () => api.delete('/wishlist')
 };

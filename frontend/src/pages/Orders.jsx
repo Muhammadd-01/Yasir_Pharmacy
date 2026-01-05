@@ -17,7 +17,7 @@ const Orders = () => {
     const fetchOrders = async () => {
         try {
             const response = await ordersAPI.getMyOrders();
-            setOrders(response.data.data || []);
+            setOrders(response.data.data.orders || []);
         } catch (error) {
             console.error('Failed to fetch orders:', error);
         } finally {

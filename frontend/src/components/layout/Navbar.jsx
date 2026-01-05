@@ -1,18 +1,21 @@
 import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
     Menu, X, ShoppingCart, User, LogOut,
-    ChevronDown, Search, ArrowRight
+    ChevronDown, Search, ArrowRight, Bell, Heart
 } from 'lucide-react';
-import { useAuth, useCart } from '@/context';
+import { useAuth, useCart, useNotification } from '@/context';
+import { notificationsAPI } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { useTheme } from '@/context/ThemeContext';
 import { Sun, Moon } from 'lucide-react';
+import { productsAPI } from '@/lib/api';
 
 const Navbar = () => {
     const { theme, toggleTheme } = useTheme();
     const location = useLocation();
+    const navigate = useNavigate(); // Added useNavigate
     const { isAuthenticated, user, logout } = useAuth();
     const { cart } = useCart();
 
@@ -20,6 +23,26 @@ const Navbar = () => {
     const [isScrolled, setIsScrolled] = useState(false);
     const [activeDropdown, setActiveDropdown] = useState(null);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [searchResults, setSearchResults] = useState([]);
+    const [searchLoading, setSearchLoading] = useState(false);
+    const [unreadNotifications, setUnreadNotifications] = useState(0);
+
+    // Fetch notifications count
+    useEffect(() => {
+        if (isAuthenticated) {
+            fetchUnreadCount();
+        }
+    }, [isAuthenticated, location.pathname]); // Re-fetch on navigation
+
+    const fetchUnreadCount = async () => {
+        try {
+            const res = await notificationsAPI.getAll({ unreadOnly: true });
+            setUnreadNotifications(res.data.data.unreadCount || 0);
+        } catch (error) {
+            console.error('Failed to fetch notifications:', error);
+        }
+    };
 
     // Scroll listener
     useEffect(() => {
@@ -30,36 +53,61 @@ const Navbar = () => {
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
+    // Search functionality
+    useEffect(() => {
+        const searchProducts = async () => {
+            if (searchQuery.trim().length < 2) {
+                setSearchResults([]);
+                return;
+            }
+
+            setSearchLoading(true);
+            try {
+                const res = await productsAPI.getAll({ search: searchQuery, limit: 5 });
+                setSearchResults(res.data.data.products || []);
+            } catch (error) {
+                console.error('Search error:', error);
+                setSearchResults([]);
+            } finally {
+                setSearchLoading(false);
+            }
+        };
+
+        const debounce = setTimeout(searchProducts, 300);
+        return () => clearTimeout(debounce);
+    }, [searchQuery]);
+
+    const handleSearchSubmit = (e) => {
+        e.preventDefault();
+        if (searchQuery.trim()) {
+            setActiveDropdown(null);
+            navigate(`/medicines?search=${encodeURIComponent(searchQuery)}`);
+            setSearchQuery('');
+        }
+    };
+
     const navigationItems = [
         { label: 'Home', href: '/' },
         {
-            label: 'Shop',
-            href: '#',
+            label: 'Medicines',
+            href: '/medicines',
             dropdown: [
-                {
-                    label: 'Medicines',
-                    href: '/medicines',
-                    subItems: [
-                        { label: 'Prescription Drugs', href: '/medicines?category=prescription' },
-                        { label: 'Over The Counter', href: '/medicines?category=otc' },
-                        { label: 'Vitamins & Supplements', href: '/medicines?category=vitamins' },
-                        { label: 'First Aid', href: '/medicines?category=first-aid' },
-                    ]
-                },
-                {
-                    label: 'General Items',
-                    href: '/general-items',
-                    subItems: [
-                        { label: 'Personal Care', href: '/general-items?category=personal-care' },
-                        { label: 'Baby Care', href: '/general-items?category=baby-care' },
-                        { label: 'Household', href: '/general-items?category=household' },
-                        { label: 'Beverages', href: '/general-items?category=beverages' },
-                    ]
-                },
+                { label: 'Tablets', href: '/medicines?subcategory=Tablet' },
+                { label: 'Capsules', href: '/medicines?subcategory=Capsule' },
+                { label: 'Syrups', href: '/medicines?subcategory=Syrup' },
+                { label: 'Injections', href: '/medicines?subcategory=Injection' },
             ]
         },
-        { label: 'Health Tips', href: '/health-tips' },
-        { label: 'Services', href: '/services' },
+        {
+            label: 'General Items',
+            href: '/general-items',
+            dropdown: [
+                { label: 'Personal Care', href: '/general-items?subcategory=Personal Care' },
+                { label: 'Baby Care', href: '/general-items?subcategory=Baby Care' },
+                { label: 'Household', href: '/general-items?subcategory=Household' },
+                { label: 'Beverages', href: '/general-items?subcategory=Beverages' },
+            ]
+        },
         { label: 'About', href: '/about' },
         { label: 'Contact', href: '/contact' },
     ];
@@ -125,35 +173,16 @@ const Navbar = () => {
                                             animate={{ opacity: 1, y: 0, scale: 1 }}
                                             exit={{ opacity: 0, y: 10, scale: 0.95 }}
                                             transition={{ duration: 0.2 }}
-                                            className="absolute top-full left-0 mt-2 w-64 py-2 rounded-xl bg-popover border border-border shadow-xl z-50 flex flex-col"
+                                            className="absolute top-full left-0 mt-2 w-56 py-2 rounded-xl bg-popover border border-border shadow-xl z-50 flex flex-col"
                                         >
                                             {item.dropdown.map((subItem, idx) => (
-                                                <div key={idx} className="relative group/sub">
-                                                    <Link
-                                                        to={subItem.href}
-                                                        className="flex items-center justify-between px-4 py-3 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                                                    >
-                                                        {subItem.label}
-                                                        {subItem.subItems && (
-                                                            <ChevronDown className="w-4 h-4 -rotate-90" />
-                                                        )}
-                                                    </Link>
-
-                                                    {/* Nested Sidebar Dropdown */}
-                                                    {subItem.subItems && (
-                                                        <div className="absolute top-0 left-full ml-2 w-56 py-2 rounded-xl bg-popover border border-border shadow-xl invisible opacity-0 -translate-x-2 group-hover/sub:visible group-hover/sub:opacity-100 group-hover/sub:translate-x-0 transition-all duration-200">
-                                                            {subItem.subItems.map((nestedItem, nIdx) => (
-                                                                <Link
-                                                                    key={nIdx}
-                                                                    to={nestedItem.href}
-                                                                    className="block px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
-                                                                >
-                                                                    {nestedItem.label}
-                                                                </Link>
-                                                            ))}
-                                                        </div>
-                                                    )}
-                                                </div>
+                                                <Link
+                                                    key={idx}
+                                                    to={subItem.href}
+                                                    className="px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors text-left"
+                                                >
+                                                    {subItem.label}
+                                                </Link>
                                             ))}
                                         </motion.div>
                                     )}
@@ -164,13 +193,127 @@ const Navbar = () => {
 
                     {/* Right Section */}
                     <div className="flex items-center gap-2">
-                        <Button variant="ghost" size="icon" onClick={toggleTheme} className="hidden md:flex">
-                            {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-                        </Button>
+                        {/* Search - Only for authenticated users */}
+                        {isAuthenticated && (
+                            <div className="relative flex items-center">
+                                <AnimatePresence>
+                                    {activeDropdown === 'search' && (
+                                        <motion.div
+                                            initial={{ width: 0, opacity: 0 }}
+                                            animate={{ width: 250, opacity: 1 }}
+                                            exit={{ width: 0, opacity: 0 }}
+                                            className="relative"
+                                        >
+                                            <form onSubmit={handleSearchSubmit}>
+                                                <input
+                                                    value={searchQuery}
+                                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                                    className="h-9 w-full rounded-l-lg border border-r-0 border-border bg-background px-3 text-sm focus:outline-none"
+                                                    placeholder="Search products..."
+                                                    autoFocus
+                                                />
+                                            </form>
 
-                        <Button variant="ghost" size="icon" className="hidden md:flex">
-                            <Search className="w-5 h-5" />
-                        </Button>
+                                            {/* Search Results Dropdown */}
+                                            {searchQuery.length >= 2 && (
+                                                <motion.div
+                                                    initial={{ opacity: 0, y: -10 }}
+                                                    animate={{ opacity: 1, y: 0 }}
+                                                    className="absolute top-full left-0 right-0 mt-2 bg-popover border border-border rounded-lg shadow-xl z-50 max-h-96 overflow-y-auto"
+                                                >
+                                                    {searchLoading ? (
+                                                        <div className="p-4 text-center text-sm text-muted-foreground">
+                                                            Searching...
+                                                        </div>
+                                                    ) : searchResults.length > 0 ? (
+                                                        <div className="py-2">
+                                                            {searchResults.map((product) => (
+                                                                <Link
+                                                                    key={product._id}
+                                                                    to={`/ ${product.type === 'medicine' ? 'medicines' : 'general-items'}/${product.slug}`}
+                                                                    onClick={() => {
+                                                                        setActiveDropdown(null);
+                                                                        setSearchQuery('');
+                                                                    }}
+                                                                    className="flex items-center gap-3 px-4 py-2 hover:bg-accent transition-colors"
+                                                                >
+                                                                    <div className="w-10 h-10 rounded bg-muted overflow-hidden flex-shrink-0">
+                                                                        {product.images?.[0]?.url && (
+                                                                            <img
+                                                                                src={product.images[0].url}
+                                                                                alt={product.name}
+                                                                                className="w-full h-full object-cover"
+                                                                            />
+                                                                        )}
+                                                                    </div>
+                                                                    <div className="flex-1 min-w-0">
+                                                                        <p className="text-sm font-medium truncate">{product.name}</p>
+                                                                        <p className="text-xs text-muted-foreground">Rs. {product.price?.toLocaleString()}</p>
+                                                                    </div>
+                                                                </Link >
+                                                            ))}
+                                                            <Link
+                                                                to={`/medicines?search=${encodeURIComponent(searchQuery)}`}
+                                                                onClick={() => {
+                                                                    setActiveDropdown(null);
+                                                                    setSearchQuery('');
+                                                                }}
+                                                                className="block px-4 py-2 text-sm text-primary hover:bg-accent transition-colors border-t border-border"
+                                                            >
+                                                                View all results →
+                                                            </Link>
+                                                        </div >
+                                                    ) : (
+                                                        <div className="p-4 text-center text-sm text-muted-foreground">
+                                                            No products found
+                                                        </div>
+                                                    )}
+                                                </motion.div >
+                                            )}
+                                        </motion.div >
+                                    )}
+                                </AnimatePresence >
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setActiveDropdown(activeDropdown === 'search' ? null : 'search')}
+                                    className={`${activeDropdown === 'search' ? 'rounded-l-none border border-l-0 border-border' : ''}`}
+                                >
+                                    <Search className="w-5 h-5" />
+                                </Button>
+                            </div >
+                        )}
+
+                        {/* Notifications */}
+                        {
+                            isAuthenticated && (
+                                <Link to="/notifications" className="relative">
+                                    <Button variant="ghost" size="icon">
+                                        <Bell className="w-5 h-5" />
+                                        {unreadNotifications > 0 && (
+                                            <motion.span
+                                                initial={{ scale: 0 }}
+                                                animate={{ scale: 1 }}
+                                                className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center border-2 border-background"
+                                            >
+                                                {unreadNotifications}
+                                            </motion.span>
+                                        )}
+                                    </Button>
+                                </Link>
+                            )
+                        }
+
+                        {/* Wishlist */}
+                        {
+                            isAuthenticated && (
+                                <Link to="/wishlist" className="relative">
+                                    <Button variant="ghost" size="icon">
+                                        <Heart className="w-5 h-5" />
+                                    </Button>
+                                </Link>
+                            )
+                        }
 
                         {/* Cart */}
                         <Link to="/cart" className="relative">
@@ -188,51 +331,63 @@ const Navbar = () => {
                             </Button>
                         </Link>
 
-                        {/* User Menu */}
-                        {isAuthenticated ? (
-                            <div
-                                className="relative"
-                                onMouseEnter={() => setActiveDropdown('user')}
-                                onMouseLeave={() => setActiveDropdown(null)}
-                            >
-                                <Button variant="ghost" size="icon">
-                                    <User className="w-5 h-5" />
-                                </Button>
+                        {/* Theme Toggle - Updated Position */}
+                        <Button variant="ghost" size="icon" onClick={toggleTheme} className="hidden md:flex">
+                            {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                        </Button>
 
-                                <AnimatePresence>
-                                    {activeDropdown === 'user' && (
-                                        <motion.div
-                                            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-                                            animate={{ opacity: 1, y: 0, scale: 1 }}
-                                            exit={{ opacity: 0, y: 10, scale: 0.95 }}
-                                            transition={{ duration: 0.2 }}
-                                            className="absolute top-full right-0 mt-2 w-48 py-2 rounded-xl bg-popover border border-border shadow-xl z-50"
-                                        >
-                                            <div className="px-4 py-2 border-b border-border">
-                                                <p className="font-medium text-sm text-foreground">{user?.name}</p>
-                                                <p className="text-xs text-muted-foreground">{user?.email}</p>
-                                            </div>
-                                            <Link to="/profile" className="block px-4 py-2.5 text-sm hover:bg-accent text-foreground">
-                                                Profile
-                                            </Link>
-                                            <Link to="/orders" className="block px-4 py-2.5 text-sm hover:bg-accent text-foreground">
-                                                My Orders
-                                            </Link>
-                                            <button
-                                                onClick={logout}
-                                                className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-500/10 flex items-center gap-2"
+                        {/* User Menu */}
+                        {
+                            isAuthenticated ? (
+                                <div
+                                    className="relative"
+                                    onMouseEnter={() => setActiveDropdown('user')}
+                                    onMouseLeave={() => setActiveDropdown(null)}
+                                >
+                                    <Button variant="ghost" size="icon">
+                                        <User className="w-5 h-5" />
+                                    </Button>
+
+                                    <AnimatePresence>
+                                        {activeDropdown === 'user' && (
+                                            <motion.div
+                                                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                animate={{ opacity: 1, y: 0, scale: 1 }}
+                                                exit={{ opacity: 0, y: 10, scale: 0.95 }}
+                                                transition={{ duration: 0.2 }}
+                                                className="absolute top-full right-0 mt-2 w-48 py-2 rounded-xl bg-popover border border-border shadow-xl z-50"
                                             >
-                                                <LogOut className="w-4 h-4" /> Logout
-                                            </button>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
-                            </div>
-                        ) : (
-                            <Link to="/login">
-                                <Button className="bg-primary text-primary-foreground hover:bg-primary/90" size="sm">Login</Button>
-                            </Link>
-                        )}
+                                                <div className="px-4 py-2 border-b border-border">
+                                                    <p className="font-medium text-sm text-foreground">{user?.name}</p>
+                                                    <p className="text-xs text-muted-foreground">{user?.email}</p>
+                                                </div>
+                                                <Link to="/profile" className="block px-4 py-2.5 text-sm hover:bg-accent text-foreground">
+                                                    Profile
+                                                </Link>
+                                                <Link to="/orders" className="block px-4 py-2.5 text-sm hover:bg-accent text-foreground">
+                                                    My Orders
+                                                </Link>
+                                                <button
+                                                    onClick={logout}
+                                                    className="w-full text-left px-4 py-2.5 text-sm text-red-500 hover:bg-red-500/10 flex items-center gap-2"
+                                                >
+                                                    <LogOut className="w-4 h-4" /> Logout
+                                                </button>
+                                            </motion.div>
+                                        )}
+                                    </AnimatePresence>
+                                </div>
+                            ) : (
+                                <div className="flex items-center gap-2">
+                                    <Link to="/login">
+                                        <Button variant="ghost" size="sm">Login</Button>
+                                    </Link>
+                                    <Link to="/register">
+                                        <Button className="bg-primary text-primary-foreground hover:bg-primary/90" size="sm">Register</Button>
+                                    </Link>
+                                </div>
+                            )
+                        }
 
                         {/* Mobile Menu Toggle */}
                         <Button
@@ -243,12 +398,12 @@ const Navbar = () => {
                         >
                             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
                         </Button>
-                    </div>
-                </nav>
-            </div>
+                    </div >
+                </nav >
+            </div >
 
             {/* Mobile Menu */}
-            <AnimatePresence>
+            < AnimatePresence >
                 {mobileMenuOpen && (
                     <motion.div
                         initial={{ opacity: 0, height: 0 }}
@@ -281,20 +436,6 @@ const Navbar = () => {
                                                     >
                                                         {subItem.label}
                                                     </Link>
-                                                    {/* Mobile Nested */}
-                                                    {subItem.subItems && (
-                                                        <div className="ml-4 space-y-1">
-                                                            {subItem.subItems.map((nestedItem, nIdx) => (
-                                                                <Link
-                                                                    key={nIdx}
-                                                                    to={nestedItem.href}
-                                                                    className="block px-4 py-1.5 text-xs text-muted-foreground/80 hover:text-foreground"
-                                                                >
-                                                                    {nestedItem.label}
-                                                                </Link>
-                                                            ))}
-                                                        </div>
-                                                    )}
                                                 </div>
                                             ))}
                                         </div>
@@ -304,8 +445,8 @@ const Navbar = () => {
                         </div>
                     </motion.div>
                 )}
-            </AnimatePresence>
-        </header>
+            </AnimatePresence >
+        </header >
     );
 };
 

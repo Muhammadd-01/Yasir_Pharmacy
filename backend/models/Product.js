@@ -66,7 +66,10 @@ const productSchema = new mongoose.Schema({
         required: [true, 'Product type is required']
     },
     images: [{
-        url: String,
+        url: {
+            type: String,
+            required: true
+        },
         alt: String,
         isPrimary: {
             type: Boolean,

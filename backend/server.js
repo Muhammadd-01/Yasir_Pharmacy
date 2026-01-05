@@ -20,6 +20,9 @@ import categoryRoutes from './routes/categoryRoutes.js';
 import cartRoutes from './routes/cartRoutes.js';
 import orderRoutes from './routes/orderRoutes.js';
 import userRoutes from './routes/userRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
+import reviewRoutes from './routes/reviewRoutes.js';
+import wishlistRoutes from './routes/wishlistRoutes.js';
 
 // Import error handler
 import errorHandler from './middleware/errorHandler.js';
@@ -57,6 +60,9 @@ app.use('/api/categories', categoryRoutes);
 app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/reviews', reviewRoutes);
+app.use('/api/wishlist', wishlistRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
